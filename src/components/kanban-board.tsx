@@ -1,4 +1,4 @@
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners, DragOverEvent } from "@dnd-kit/core"
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners, DragOverEvent, useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useState } from "react"
 import { Task } from "@/types/task"
@@ -129,48 +129,55 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
     title: string
     tasks: Task[]
     count: number 
-  }) => (
-    <div className="flex-1">
-      <Card className="shadow-medium" id={`${status}-column`}>
-        <CardHeader className="pb-3">
-          <CardTitle className={`flex items-center justify-between text-lg ${getColumnColor(status)}`}>
-            <div className="flex items-center gap-2">
-              {getColumnIcon(status)}
-              {title}
-            </div>
-            <Badge variant="secondary" className="ml-2">
-              {count}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-            <div
-              id={status}
-              className="min-h-[400px] space-y-3 scrollbar-hide overflow-y-auto max-h-[70vh] transition-colors duration-200 rounded-lg p-2"
-              style={{
-                background: 'var(--drop-zone-bg, transparent)'
-              }}
-            >
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onDelete={onDeleteTask}
-                onUpdateProgress={handleUpdateProgress}
-              />
-            ))}
-            {tasks.length === 0 && (
-              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm border-2 border-dashed border-muted rounded-lg transition-colors hover:border-primary/50">
-                Drop tasks here
+  }) => {
+    const { setNodeRef } = useDroppable({
+      id: status,
+    })
+
+    return (
+      <div className="flex-1">
+        <Card className="shadow-medium" id={`${status}-column`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`flex items-center justify-between text-lg ${getColumnColor(status)}`}>
+              <div className="flex items-center gap-2">
+                {getColumnIcon(status)}
+                {title}
               </div>
-            )}
-          </div>
-        </SortableContext>
-        </CardContent>
-      </Card>
-    </div>
-  )
+              <Badge variant="secondary" className="ml-2">
+                {count}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+              <div
+                ref={setNodeRef}
+                id={status}
+                className="min-h-[400px] space-y-3 scrollbar-hide overflow-y-auto max-h-[70vh] transition-colors duration-200 rounded-lg p-2"
+                style={{
+                  background: dragOverColumn === status ? 'hsl(var(--primary) / 0.1)' : 'transparent'
+                }}
+              >
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onDelete={onDeleteTask}
+                  onUpdateProgress={handleUpdateProgress}
+                />
+              ))}
+              {tasks.length === 0 && (
+                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm border-2 border-dashed border-muted rounded-lg transition-colors hover:border-primary/50">
+                  Drop tasks here
+                </div>
+              )}
+            </div>
+          </SortableContext>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <DndContext
