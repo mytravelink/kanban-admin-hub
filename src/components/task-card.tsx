@@ -57,11 +57,12 @@ export function TaskCard({ task, onDelete, onUpdateProgress }: TaskCardProps) {
     <Card
       ref={setNodeRef}
       style={style}
-      className={`mb-3 transition-smooth hover:shadow-medium cursor-pointer ${
-        sortableIsDragging ? 'shadow-strong' : 'shadow-soft'
+      {...attributes}
+      className={`mb-3 transition-smooth hover:shadow-medium ${
+        sortableIsDragging ? 'shadow-strong cursor-grabbing' : 'shadow-soft cursor-grab'
       }`}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4" {...listeners}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h3 className="font-semibold text-foreground mb-1 line-clamp-2">
@@ -73,11 +74,7 @@ export function TaskCard({ task, onDelete, onUpdateProgress }: TaskCardProps) {
               </p>
             )}
           </div>
-          <div 
-            {...attributes}
-            {...listeners}
-            className="ml-2 p-1 hover:bg-muted rounded cursor-grab active:cursor-grabbing"
-          >
+          <div className="ml-2 p-1 hover:bg-muted rounded">
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
@@ -106,6 +103,7 @@ export function TaskCard({ task, onDelete, onUpdateProgress }: TaskCardProps) {
             <Slider
               value={[task.progress]}
               onValueChange={(value) => onUpdateProgress(task.id, value[0])}
+              onPointerDown={(e) => e.stopPropagation()}
               max={100}
               step={10}
               className="w-full"
@@ -120,7 +118,10 @@ export function TaskCard({ task, onDelete, onUpdateProgress }: TaskCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(task.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(task.id)
+              }}
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="w-4 h-4" />

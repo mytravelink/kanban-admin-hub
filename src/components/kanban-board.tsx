@@ -57,10 +57,14 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
+    console.log('Drag ended:', { active: active.id, over: over?.id })
     setActiveTask(null)
     setDragOverColumn(null)
 
-    if (!over) return
+    if (!over) {
+      console.log('No drop target found')
+      return
+    }
 
     const taskId = active.id as string
     const overId = over.id as string
@@ -74,10 +78,12 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
     } else if (overId === 'done-column' || overId === 'done' || doneTasks.some(task => task.id === overId)) {
       newStatus = 'done'
     } else {
+      console.log('Unknown drop zone:', overId)
       return
     }
 
     const task = tasks.find(t => t.id === taskId)
+    console.log('Moving task:', { taskId, from: task?.status, to: newStatus })
     if (task && task.status !== newStatus) {
       onUpdateTask(taskId, { status: newStatus })
     }
@@ -124,27 +130,28 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
     tasks: Task[]
     count: number 
   }) => (
-    <Card className="flex-1 shadow-medium" id={`${status}-column`}>
-      <CardHeader className="pb-3">
-        <CardTitle className={`flex items-center justify-between text-lg ${getColumnColor(status)}`}>
-          <div className="flex items-center gap-2">
-            {getColumnIcon(status)}
-            {title}
-          </div>
-          <Badge variant="secondary" className="ml-2">
-            {count}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-          <div
-            id={status}
-            className="min-h-[400px] space-y-3 scrollbar-hide overflow-y-auto max-h-[70vh] transition-colors duration-200 rounded-lg p-2"
-            style={{
-              background: 'var(--drop-zone-bg, transparent)'
-            }}
-          >
+    <div className="flex-1">
+      <Card className="shadow-medium" id={`${status}-column`}>
+        <CardHeader className="pb-3">
+          <CardTitle className={`flex items-center justify-between text-lg ${getColumnColor(status)}`}>
+            <div className="flex items-center gap-2">
+              {getColumnIcon(status)}
+              {title}
+            </div>
+            <Badge variant="secondary" className="ml-2">
+              {count}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+            <div
+              id={status}
+              className="min-h-[400px] space-y-3 scrollbar-hide overflow-y-auto max-h-[70vh] transition-colors duration-200 rounded-lg p-2"
+              style={{
+                background: 'var(--drop-zone-bg, transparent)'
+              }}
+            >
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -160,8 +167,9 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
             )}
           </div>
         </SortableContext>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   )
 
   return (
