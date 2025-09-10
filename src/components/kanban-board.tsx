@@ -31,11 +31,13 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find(task => task.id === event.active.id)
+    console.log('Drag started:', { taskId: event.active.id, task })
     setActiveTask(task || null)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event
+    console.log('Drag over:', { over: over?.id })
     if (!over) {
       setDragOverColumn(null)
       return
@@ -52,6 +54,7 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
       columnId = 'done'
     }
     
+    console.log('Setting drag over column:', columnId)
     setDragOverColumn(columnId)
   }
 
@@ -71,21 +74,30 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
 
     // Determine the new status based on the drop zone
     let newStatus: Task['status']
-    if (overId === 'todo-column' || overId === 'todo' || todoTasks.some(task => task.id === overId)) {
+    if (overId === 'todo' || overId.includes('todo')) {
       newStatus = 'todo'
-    } else if (overId === 'inProgress-column' || overId === 'inProgress' || inProgressTasks.some(task => task.id === overId)) {
+    } else if (overId === 'inProgress' || overId.includes('inProgress')) {
       newStatus = 'inProgress'
-    } else if (overId === 'done-column' || overId === 'done' || doneTasks.some(task => task.id === overId)) {
+    } else if (overId === 'done' || overId.includes('done')) {
       newStatus = 'done'
     } else {
-      console.log('Unknown drop zone:', overId)
-      return
+      // Check if dropped on a task, get the task's column
+      const targetTask = tasks.find(t => t.id === overId)
+      if (targetTask) {
+        newStatus = targetTask.status
+      } else {
+        console.log('Unknown drop zone:', overId)
+        return
+      }
     }
 
     const task = tasks.find(t => t.id === taskId)
     console.log('Moving task:', { taskId, from: task?.status, to: newStatus })
     if (task && task.status !== newStatus) {
+      console.log('Updating task status')
       onUpdateTask(taskId, { status: newStatus })
+    } else {
+      console.log('Task not found or status unchanged')
     }
   }
 
