@@ -1,4 +1,4 @@
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners } from "@dnd-kit/core"
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners, DragOverEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useState } from "react"
 import { Task } from "@/types/task"
@@ -15,6 +15,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -33,9 +34,31 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
     setActiveTask(task || null)
   }
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event
+    if (!over) {
+      setDragOverColumn(null)
+      return
+    }
+
+    const overId = over.id as string
+    let columnId: string | null = null
+    
+    if (overId === 'todo-column' || overId === 'todo') {
+      columnId = 'todo'
+    } else if (overId === 'inProgress-column' || overId === 'inProgress') {
+      columnId = 'inProgress'
+    } else if (overId === 'done-column' || overId === 'done') {
+      columnId = 'done'
+    }
+    
+    setDragOverColumn(columnId)
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     setActiveTask(null)
+    setDragOverColumn(null)
 
     if (!over) return
 
@@ -44,11 +67,11 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
 
     // Determine the new status based on the drop zone
     let newStatus: Task['status']
-    if (overId === 'todo' || todoTasks.some(task => task.id === overId)) {
+    if (overId === 'todo-column' || overId === 'todo' || todoTasks.some(task => task.id === overId)) {
       newStatus = 'todo'
-    } else if (overId === 'inProgress' || inProgressTasks.some(task => task.id === overId)) {
+    } else if (overId === 'inProgress-column' || overId === 'inProgress' || inProgressTasks.some(task => task.id === overId)) {
       newStatus = 'inProgress'
-    } else if (overId === 'done' || doneTasks.some(task => task.id === overId)) {
+    } else if (overId === 'done-column' || overId === 'done' || doneTasks.some(task => task.id === overId)) {
       newStatus = 'done'
     } else {
       return
@@ -101,7 +124,7 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
     tasks: Task[]
     count: number 
   }) => (
-    <Card className="flex-1 shadow-medium">
+    <Card className="flex-1 shadow-medium" id={`${status}-column`}>
       <CardHeader className="pb-3">
         <CardTitle className={`flex items-center justify-between text-lg ${getColumnColor(status)}`}>
           <div className="flex items-center gap-2">
@@ -117,7 +140,10 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
         <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
           <div
             id={status}
-            className="min-h-[400px] space-y-3 scrollbar-hide overflow-y-auto max-h-[70vh]"
+            className="min-h-[400px] space-y-3 scrollbar-hide overflow-y-auto max-h-[70vh] transition-colors duration-200 rounded-lg p-2"
+            style={{
+              background: 'var(--drop-zone-bg, transparent)'
+            }}
           >
             {tasks.map((task) => (
               <TaskCard
@@ -128,7 +154,7 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
               />
             ))}
             {tasks.length === 0 && (
-              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm border-2 border-dashed border-muted rounded-lg">
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm border-2 border-dashed border-muted rounded-lg transition-colors hover:border-primary/50">
                 Drop tasks here
               </div>
             )}
@@ -143,27 +169,34 @@ export function KanbanBoard({ tasks, onUpdateTask, onDeleteTask }: KanbanBoardPr
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <KanbanColumn
-          status="todo"
-          title="To Do"
-          tasks={todoTasks}
-          count={todoTasks.length}
-        />
-        <KanbanColumn
-          status="inProgress"
-          title="In Progress"
-          tasks={inProgressTasks}
-          count={inProgressTasks.length}
-        />
-        <KanbanColumn
-          status="done"
-          title="Done"
-          tasks={doneTasks}
-          count={doneTasks.length}
-        />
+        <div className={`transition-all duration-200 ${dragOverColumn === 'todo' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}>
+          <KanbanColumn
+            status="todo"
+            title="To Do"
+            tasks={todoTasks}
+            count={todoTasks.length}
+          />
+        </div>
+        <div className={`transition-all duration-200 ${dragOverColumn === 'inProgress' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}>
+          <KanbanColumn
+            status="inProgress"
+            title="In Progress"
+            tasks={inProgressTasks}
+            count={inProgressTasks.length}
+          />
+        </div>
+        <div className={`transition-all duration-200 ${dragOverColumn === 'done' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}>
+          <KanbanColumn
+            status="done"
+            title="Done"
+            tasks={doneTasks}
+            count={doneTasks.length}
+          />
+        </div>
       </div>
 
       <DragOverlay>
